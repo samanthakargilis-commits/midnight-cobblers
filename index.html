@@ -81,6 +81,12 @@ body { background: var(--night); color: var(--ink); font-family: var(--body); ov
 </div>
 <div class="end" id="end" hidden><button id="again" type="button">Begin again</button></div>
 
+<div id="diag" style="position:fixed;left:8px;right:8px;top:calc(env(safe-area-inset-top,0px) + 48px);z-index:99;font:12px/1.35 -apple-system,sans-serif;color:#fff;background:rgba(160,20,20,.85);padding:6px 8px;border-radius:8px;white-space:pre-wrap;display:none;pointer-events:none"></div>
+<script>
+window.__diag=function(m){var d=document.getElementById("diag");if(!d)return;d.style.display="block";if(d.textContent.split("\n").length<12)d.textContent+=(d.textContent?"\n":"")+String(m).slice(0,300);};
+addEventListener("error",function(e){__diag("Error: "+e.message+" @"+(e.lineno||""));});
+addEventListener("unhandledrejection",function(e){__diag("Promise: "+(e.reason&&e.reason.message||e.reason));});
+</script>
 <script type="importmap">
 { "imports": {
   "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
@@ -173,6 +179,8 @@ renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
 renderer.outputColorSpace = THREE.SRGBColorSpace;
 renderer.toneMapping = THREE.ACESFilmicToneMapping;
 renderer.toneMappingExposure = 1.0;
+canvas.addEventListener("webglcontextlost", (e) => { e.preventDefault(); __diag("The 3D view was lost (GPU memory). Reload to try again."); });
+if (new URLSearchParams(location.search).has("diag")) { const gl = renderer.getContext(); const dbg = gl.getExtension("WEBGL_debug_renderer_info"); __diag("GL: " + (dbg ? gl.getParameter(dbg.UNMASKED_RENDERER_WEBGL) : "?") + " · " + innerWidth + "x" + innerHeight + " @" + devicePixelRatio); }
 const scene = new THREE.Scene();
 const pmrem = new THREE.PMREMGenerator(renderer);
 scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
@@ -646,7 +654,12 @@ const moon = (() => {
   const m = new THREE.Mesh(new THREE.CircleGeometry(0.15, 40), new THREE.MeshBasicMaterial({ map: t, color: 0x444444 }));
   m.position.set(-0.105, 0.585, -0.37); world.add(m); named.moonSky = [m]; return m;
 })();
+let frameErrs = 0;
 function frame(now) {
+  try { frameBody(now); } catch (e) { if (frameErrs++ < 3) __diag("Frame: " + e.message); try { composer.render(); } catch (e2) { if (frameErrs < 5) __diag("Render: " + e2.message); } }
+  requestAnimationFrame(frame);
+}
+function frameBody(now) {
   controls.update();
   paintTime.value = now / 1000;
   for (const P of pieces) if (P.done) P.full.value = Math.min(1, (now - P.fullT0) / 800);
@@ -681,7 +694,6 @@ function frame(now) {
     if (k < 1) { const s = Math.sin(k * Math.PI); anim.cat.inner.scale.y = 1 + s * 0.08; anim.cat.inner.rotation.z = s * 0.04; }
   }
   composer.render();
-  requestAnimationFrame(frame);
 }
 
 /* ---------- start, finish, buttons ---------- */
