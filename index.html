@@ -1,0 +1,755 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Cobblers">
+<meta name="theme-color" content="#1b120b">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-512.png">
+<link rel="manifest" href="manifest.webmanifest">
+<style>body{margin:0}[hidden]{display:none!important}</style></head><body>
+<title>The Midnight Cobblers</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IM+Fell+English:ital@0;1&family=Karla:wght@400;600&display=swap">
+<style>
+/* Layout: the 3D shop fills the screen; a progress pill top-left, the task pill top-center, captions at the bottom. */
+:root {
+  --ink: #f6ead4;
+  --ink-dim: #cdb592;
+  --night: #1b120b;
+  --glass: rgba(27, 18, 11, 0.62);
+  --gold: #f2bd62;
+  --gold-deep: #c98a2e;
+  --display: "IM Fell English", "Iowan Old Style", Georgia, serif;
+  --body: "Karla", "Helvetica Neue", Arial, sans-serif;
+  color-scheme: dark;
+}
+html, body { height: 100%; }
+body { background: var(--night); color: var(--ink); font-family: var(--body); overflow: hidden; touch-action: none; -webkit-user-select: none; user-select: none; }
+[hidden] { display: none !important; }
+#c { position: fixed; inset: 0; width: 100%; height: 100%; display: block; }
+.hud { position: fixed; left: 0; right: 0; top: 0; padding: calc(env(safe-area-inset-top, 0px) + 12px) 16px 0; display: grid; grid-template-columns: 1fr auto 1fr; align-items: start; gap: 8px; pointer-events: none; }
+.progress { justify-self: start; background: var(--glass); border-radius: 999px; padding: 6px 12px; font-size: 13px; font-weight: 600; display: flex; align-items: center; gap: 8px; font-variant-numeric: tabular-nums; }
+.progress .bar { width: 54px; height: 5px; border-radius: 3px; background: rgba(246,234,212,.18); overflow: hidden; }
+.progress .bar i { display: block; height: 100%; width: 0; background: var(--gold); transition: width .6s ease; }
+.mute { justify-self: end; pointer-events: auto; background: var(--glass); color: var(--ink); border: 0; border-radius: 999px; width: 38px; height: 38px; display: grid; place-items: center; cursor: pointer; }
+.mute:focus-visible, .begin:focus-visible { outline: 2px solid var(--gold); outline-offset: 2px; }
+.cue-wrap { position: fixed; left: 0; right: 0; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px + 3.9em); display: flex; justify-content: center; pointer-events: none; font-size: clamp(19px, 4.6vw, 25px); }
+.cue { position: relative; overflow: hidden; border-radius: 999px; background: var(--glass); border: 1.5px solid var(--gold); padding: 8px 20px; font-weight: 600; font-size: 15px; white-space: nowrap; max-width: 70vw; transition: opacity .5s ease, transform .5s ease; }
+.cue.off { opacity: 0; transform: translateY(8px); }
+.cue .fill { position: absolute; inset: 0 auto 0 0; width: 0; background: linear-gradient(90deg, var(--gold-deep), var(--gold)); transition: width .45s ease; }
+.cue span { position: relative; text-overflow: ellipsis; overflow: hidden; display: block; }
+.cue.full span { color: var(--night); }
+.caption { position: fixed; left: 50%; bottom: calc(env(safe-area-inset-bottom, 0px) + 28px); transform: translateX(-50%); width: min(640px, calc(100% - 32px)); text-align: center; font-family: var(--display); font-size: clamp(19px, 4.6vw, 25px); line-height: 1.3; text-wrap: balance; text-shadow: 0 1px 12px rgba(0,0,0,.85), 0 0 2px rgba(0,0,0,.9); transition: opacity .45s ease; pointer-events: none; }
+.caption.fade { opacity: 0; }
+.ring { position: fixed; width: 64px; height: 64px; margin: -32px 0 0 -32px; border-radius: 50%; border: 2.5px solid rgba(255, 214, 140, .95); box-shadow: 0 0 14px rgba(255, 190, 90, .8), inset 0 0 10px rgba(255, 190, 90, .5); pointer-events: none; animation: ring .7s ease-out forwards; }
+@keyframes ring { from { transform: scale(.25); opacity: 1; } to { transform: scale(1.35); opacity: 0; } }
+.intro { position: fixed; inset: 0; display: grid; place-items: center; padding-inline: 16px; background: radial-gradient(90% 70% at 50% 45%, rgba(27,18,11,.35), rgba(27,18,11,.88)); }
+.card { text-align: center; display: grid; gap: 14px; justify-items: center; max-width: 30rem; }
+.card .eyebrow { font-size: 12px; letter-spacing: .18em; text-transform: uppercase; color: var(--ink-dim); }
+.card h1 { font-family: var(--display); font-weight: 400; font-size: clamp(38px, 10vw, 60px); line-height: 1.02; margin: 0; text-wrap: balance; }
+.card p { margin: 0; color: var(--ink-dim); max-width: 34ch; line-height: 1.5; }
+.begin { font: 600 17px var(--body); color: var(--night); background: var(--gold); border: 0; border-radius: 999px; padding: 12px 34px; cursor: pointer; margin-top: 6px; }
+.begin:disabled { background: rgba(246,234,212,.25); color: var(--ink-dim); cursor: default; }
+.end { position: fixed; inset: auto 0 calc(env(safe-area-inset-bottom, 0px) + 90px); text-align: center; }
+.end button { font: 600 14px var(--body); color: var(--ink); background: var(--glass); border: 1px solid rgba(246,234,212,.3); border-radius: 999px; padding: 8px 18px; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { .ring { animation-duration: .01s; } }
+</style>
+
+<canvas id="c" aria-label="The cobblers' workshop. Drag to look around, tap to paint."></canvas>
+
+<div class="hud">
+  <div class="progress" aria-live="polite"><span id="plabel">Progress 0%</span><span class="bar"><i id="pbar"></i></span></div>
+  <span></span>
+  <button class="mute" id="mute" type="button" aria-label="Mute sound" title="Sound on">
+    <svg id="snd-on" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M16.5 8.5a5 5 0 0 1 0 7"/></svg>
+    <svg id="snd-off" hidden width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 9h4l5-4v14l-5-4H4z"/><path d="M17 9l5 6M22 9l-5 6"/></svg>
+  </button>
+</div>
+
+<div class="cue-wrap"><div class="cue off" id="cue" aria-live="polite"><div class="fill" id="cueFill"></div><span id="cueText"></span></div></div>
+<div class="caption" id="caption"></div>
+
+<div class="intro" id="intro">
+  <div class="card">
+    <div class="eyebrow">A sleepscape</div>
+    <h1>The Midnight Cobblers</h1>
+    <p>Tonight you're the newest apprentice in a tiny guild that mends twelve princesses' slippers. Drag to look around. When a task appears, tap to paint it in.</p>
+    <button class="begin" id="begin" type="button" disabled>Loading the workshop…</button>
+  </div>
+</div>
+<div class="end" id="end" hidden><button id="again" type="button">Begin again</button></div>
+
+<script type="importmap">
+{ "imports": {
+  "three": "https://cdn.jsdelivr.net/npm/three@0.169.0/build/three.module.js",
+  "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.169.0/examples/jsm/"
+} }
+</script>
+<script type="module">
+import * as THREE from "three";
+import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { RoomEnvironment } from "three/addons/environments/RoomEnvironment.js";
+import { EffectComposer } from "three/addons/postprocessing/EffectComposer.js";
+import { RenderPass } from "three/addons/postprocessing/RenderPass.js";
+import { OutlinePass } from "three/addons/postprocessing/OutlinePass.js";
+import { OutputPass } from "three/addons/postprocessing/OutputPass.js";
+
+const Q = new URLSearchParams(location.search);
+const FAST = Q.has("fast"), DEBUG = Q.get("debug");
+const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+const v3 = (x, y, z) => new THREE.Vector3(x, y, z);
+
+// The 38 narration clips, with caption timings measured from the pauses in each recording.
+const CLIPS = [{"clip": "MC001", "task": "", "kind": "opening", "dur": 12.51, "caps": ["Hello, and welcome back.", "Tonight, you're joining the Honourable Guild of Midnight Cobblers", "as its very newest apprentice.", "But first things first.", "It's a little dark in here."], "at": [0, 1.91, 6.66, 8.85, 10.54], "after": "2.5 s"}, {"clip": "MC002", "task": "Light the shop lantern", "kind": "setup", "dur": 11.02, "caps": ["The cobblers always start the night the same way,", "by lighting the lantern that hangs above the door.", "It's made from an old jam jar", "and a candle no taller than your thumb."], "at": [0, 3.14, 6.21, 8.36], "after": "TASK PILL: Light the shop lantern"}, {"clip": "MC003", "task": "Light the shop lantern", "kind": "reward", "dur": 5.36, "caps": ["There we are.", "Warm, and golden, and just bright enough to work by."], "at": [0, 1.15], "after": "then MUSIC 12-15 s"}, {"clip": "MC004", "task": "Color the moon window", "kind": "setup", "dur": 17.27, "caps": ["By its light,", "you can see the round window at the back of the shop,", "and through it, the moon,", "which the cobblers consider their oldest customer.", "It has looked in on this shop every night for three hundred years,", "ever since the guild took on its most peculiar job."], "at": [0, 4.3, 5.26, 6.28, 9.5, 13.66], "after": "TASK PILL: Color the moon window"}, {"clip": "MC005", "task": "Color the moon window", "kind": "reward", "dur": 3.94, "caps": ["The moon is up.", "The night has officially begun."], "at": [0, 1.49], "after": "then MUSIC 12-15 s"}, {"clip": "MC006", "task": "Greet 3 cobblers", "kind": "setup", "dur": 17.29, "caps": ["You're not alone, of course.", "Three cobblers are already here,", "though they're very good at going unnoticed.", "There's Tuck, who does the stitching, Bramble, who keeps the ribbons,", "and old Fennimore, who mostly supervises", "from the comfortable end of the bench.", "Go on, say hello."], "at": [0, 1.68, 3.86, 6.39, 8.66, 10.64, 15.58], "after": "TASK PILL: Greet 3 cobblers"}, {"clip": "MC007", "task": "Greet 3 cobblers", "kind": "reward", "dur": 9.43, "caps": ["Tuck waves his needle.", "Bramble curtsies.", "Fennimore nods, very slowly,", "which from Fennimore is a warm welcome indeed."], "at": [0, 1.78, 3.34, 6.23], "after": "then MUSIC 12-15 s"}, {"clip": "MC008", "task": "Color the slipper shelves", "kind": "setup", "dur": 19.46, "caps": ["Now, about that peculiar job.", "In the castle above us live twelve princesses", "who are very good at keeping a secret.", "Every night, when the castle is asleep, they slip away", "and dance until the sky turns pale.", "And every morning, their slippers come back worn clean through."], "at": [0, 0.69, 2.91, 8.78, 11.22, 15.42], "after": "2.0 s"}, {"clip": "MC009", "task": "Color the slipper shelves", "kind": "setup", "dur": 14.76, "caps": ["So every night, the slippers find their way here,", "to twelve wooden cubbies along the back wall,", "each pair as big as a garden shed.", "To a princess, they're dainty.", "To a cobbler, they're a day's walk from heel to toe."], "at": [0, 3.32, 6.14, 8.89, 11.15], "after": "TASK PILL: Color the slipper shelves"}, {"clip": "MC010", "task": "Color the slipper shelves", "kind": "reward", "dur": 7.55, "caps": ["Twelve pairs, waiting patiently.", "And in three hundred years,", "the guild has never once been late."], "at": [0, 2.57, 4.74], "after": "then MUSIC 12-15 s"}, {"clip": "MC011", "task": "Color the rolling ladder", "kind": "setup", "dur": 12.2, "caps": ["To reach the top cubbies, the guild uses a rolling ladder", "that squeaks on the third rung.", "Nobody has ever oiled it.", "Fennimore says the squeak is how the ladder knows", "it's being useful."], "at": [0, 3.86, 5.96, 7.66, 10.98], "after": "TASK PILL: Color the rolling ladder"}, {"clip": "MC012", "task": "Color the rolling ladder", "kind": "reward", "dur": 2.4, "caps": ["Squeak.", "Just as it should."], "at": [0, 1.01], "after": "then MUSIC 12-15 s"}, {"clip": "MC013", "task": "Color the workbench", "kind": "setup", "dur": 14.5, "caps": ["This is the workbench, where the real work happens.", "It's been scrubbed and polished so many times", "that the wood has gone as soft as butter,", "and if you put your ear to it,", "they say you can hear three centuries of tiny hammers."], "at": [0, 3.35, 6.3, 8.99, 10.96], "after": "TASK PILL: Color the workbench"}, {"clip": "MC014", "task": "Color the workbench", "kind": "reward", "dur": 1.78, "caps": ["Clean, and ready."], "at": [0], "after": "then MUSIC 12-15 s"}, {"clip": "MC015", "task": "Find 3 spools of thread", "kind": "setup", "dur": 18.0, "caps": ["Before we start, we'll need thread.", "Not ordinary thread, of course.", "The guild uses moonlight thread,", "spun from the light that falls through the window", "between midnight and one.", "Bramble keeps the spools all over the shop,", "and never in the same place twice."], "at": [0, 2.53, 4.77, 7.08, 10.63, 12.43, 15.54], "after": "TASK PILL: Find 3 spools of thread"}, {"clip": "MC016", "task": "Find 3 spools of thread", "kind": "reward", "dur": 5.15, "caps": ["One silver, one rose, one gold.", "That should see us through the night."], "at": [0, 3.39], "after": "then MUSIC 12-15 s"}, {"clip": "MC017", "task": "Color the cork anvil", "kind": "setup", "dur": 16.27, "caps": ["Now, the first pair.", "Tuck lifts it down onto the cork anvil,", "which is really an old wine cork that someone, long ago,", "decided was far too good to throw away.", "It's soft enough to be gentle with satin,", "and firm enough to hold a sole."], "at": [0, 1.44, 4.25, 8.28, 11.09, 14.04], "after": "TASK PILL: Color the cork anvil"}, {"clip": "MC018", "task": "Color the cork anvil", "kind": "reward", "dur": 1.99, "caps": ["Ready for the first stitch."], "at": [0], "after": "then MUSIC 12-15 s"}, {"clip": "MC019", "task": "Mend the rose satin pair", "kind": "setup", "dur": 20.3, "caps": ["These belong to the eldest princess.", "Rose satin,", "with ribbons the color of the inside of a shell.", "She dances the longest, so her soles are always the thinnest.", "Tuck shows you how it's done: in, and over, and through,", "and pull it soft.", "In, and over, and through."], "at": [0, 2.74, 7.04, 11.34, 13.27, 15.88, 17.49], "after": "TASK PILL: Mend the rose satin pair"}, {"clip": "MC020", "task": "Mend the rose satin pair", "kind": "reward", "dur": 4.05, "caps": ["Look at that.", "Good as new, and perhaps a little better."], "at": [0, 1.2], "after": "then MUSIC 12-15 s"}, {"clip": "MC021", "task": "Find the 3 enchanted leaves", "kind": "setup", "dur": 20.17, "caps": ["Every so often, something comes back caught in a hem.", "Tonight, it's three leaves, one silver, one gold,", "and one that seems to be made of diamond.", "The Ledger of Worn Soles", "says they come from three enchanted groves", "that the princesses pass on their way.", "The guild keeps every one."], "at": [0, 3.58, 5.61, 6.65, 7.7, 10.61, 17.96], "after": "TASK PILL: Find the 3 enchanted leaves"}, {"clip": "MC022", "task": "Find the 3 enchanted leaves", "kind": "reward", "dur": 4.65, "caps": ["Three leaves, pressed and safe.", "We'll put them in the Ledger later."], "at": [0, 2.76], "after": "then MUSIC 12-15 s"}, {"clip": "MC023", "task": "Mend the teal pearl pair", "kind": "setup", "dur": 13.79, "caps": ["The next pair is teal,", "with tiny pearls sewn along the toes.", "Bramble finds the loose ones and threads them back on,", "one by one, while you stitch the sole.", "In, and over, and through."], "at": [0, 1.96, 4.78, 7.97, 11.0], "after": "TASK PILL: Mend the teal pearl pair"}, {"clip": "MC024", "task": "Mend the teal pearl pair", "kind": "reward", "dur": 2.43, "caps": ["Every pearl back where it belongs."], "at": [0], "after": "then MUSIC 12-15 s"}, {"clip": "MC025", "task": "Color the teapot", "kind": "setup", "dur": 8.36, "caps": ["Around this time of night, Fennimore puts the kettle on.", "Cobbler tea is very weak and very sweet,", "and it's served in thimbles."], "at": [0, 3.32, 6.37], "after": "TASK PILL: Color the teapot"}, {"clip": "MC026", "task": "Color the teapot", "kind": "reward", "dur": 2.01, "caps": ["Warm.", "Lovely."], "at": [0, 1.0], "after": "then MUSIC 18-25 s"}, {"clip": "MC027", "task": "Mend the lavender pair", "kind": "setup", "dur": 6.53, "caps": ["Lavender, now.", "Soft, and a little sleepy.", "In, and over, and through."], "at": [0, 1.33, 3.73], "after": "TASK PILL: Mend the lavender pair"}, {"clip": "MC028", "task": "Mend the lavender pair", "kind": "reward", "dur": 0.76, "caps": ["Done."], "at": [0], "after": "then MUSIC 18-25 s"}, {"clip": "MC029", "task": "Mend the last nine pairs", "kind": "setup", "dur": 14.65, "caps": ["Nine pairs left.", "The cobblers work quietly now, side by side,", "the way people do when they've done something a thousand times", "and still enjoy it.", "You don't need to hurry.", "The night is long, and the slippers are patient."], "at": [0, 1.1, 4.13, 8.39, 9.7, 11.35], "after": "TASK PILL: Mend the last nine pairs"}, {"clip": "MC030", "task": "Mend the last nine pairs", "kind": "reward", "dur": 2.43, "caps": ["Twelve pairs, all mended."], "at": [0], "after": "then MUSIC 18-25 s"}, {"clip": "MC031", "task": "Color the shoe lasts", "kind": "setup", "dur": 8.33, "caps": ["On the high shelf, the wooden shoe lasts", "sit in a row, like a line of quiet little hills.", "They've earned their rest as well."], "at": [0, 2.73, 6.01], "after": "TASK PILL: Color the shoe lasts"}, {"clip": "MC032", "task": "Color the shoe lasts", "kind": "reward", "dur": 1.57, "caps": ["All in their places."], "at": [0], "after": "then MUSIC 18-25 s"}, {"clip": "MC033", "task": "Wake the shop cat, gently", "kind": "setup", "dur": 16.8, "caps": ["And one last thing.", "Curled on the windowsill is the shop cat, who is enormous,", "and very old, and has never once chased a cobbler.", "She's been asleep all night.", "Just a gentle stroke, to let her know we're finished."], "at": [0, 1.9, 7.97, 10.82, 13.27], "after": "TASK PILL: Wake the shop cat, gently"}, {"clip": "MC034", "task": "Wake the shop cat, gently", "kind": "reward", "dur": 6.03, "caps": ["One eye opens.", "One slow blink.", "And back to sleep she goes."], "at": [0, 1.91, 3.84], "after": "then MUSIC 18-25 s"}, {"clip": "MC035", "task": "", "kind": "closing", "dur": 9.93, "caps": ["The lantern is burning low.", "The thread is put away.", "Twelve pairs of slippers sit in their cubbies, mended,", "and softly glowing."], "at": [0, 2.45, 4.62, 8.27], "after": "2.5 s"}, {"clip": "MC036", "task": "", "kind": "closing", "dur": 10.53, "caps": ["In a little while,", "they'll find their way back to the castle,", "and twelve princesses will wake and never quite know why", "their slippers feel so comfortable."], "at": [0, 1.37, 3.75, 5.97], "after": "2.5 s"}, {"clip": "MC037", "task": "", "kind": "closing", "dur": 4.78, "caps": ["You did very well tonight, apprentice.", "The guild is proud of you."], "at": [0, 2.7], "after": "2.5 s"}, {"clip": "MC038", "task": "", "kind": "closing", "dur": 2.17, "caps": ["Now rest.", "Goodnight."], "at": [0, 1.26], "after": "fade music out over 60 s"}];
+
+/* ---------- the story's tasks, and which parts of the workshop each one paints ---------- */
+// Pieces are Tripo part numbers, a carved slice of a part, or one of the separate character models.
+// A task with several pieces fills its pill one share per piece, like Loóna's "Find" and "Greet" tasks.
+const TASKS = {
+  "Light the shop lantern":     { pieces: ["lanternA", "lanternB"] },
+  "Color the moon window":      { pieces: [[1, 22, 17, 29, 36, 42, 45, "moonSky"]] },
+  "Greet 3 cobblers":           { pieces: ["tuck", "bramble", "fennimore"], greet: true },
+  "Color the slipper shelves":  { pieces: [[4, "drawer", "pitCap", 2, 11, 24, 28, 43, 8, 3]] },
+  "Color the rolling ladder":   { pieces: [[15, 31]] },
+  "Color the workbench":        { pieces: [[0, 23, 7, 14]] },
+  "Find 3 spools of thread":    { pieces: [[25], [27], [33, 41]] },
+  "Color the cork anvil":       { pieces: [["corkA", 39, 26, 19, "pins"]] },
+  "Mend the rose satin pair":   { pieces: ["roseSlipper"] },
+  "Find the 3 enchanted leaves":{ pieces: ["leafSilver", "leafGold", "leafCrystal"] },
+  "Mend the teal pearl pair":   { pieces: ["slipperTeal"] },
+  "Color the teapot":           { pieces: [[18, 34, 37, 44]] },
+  "Mend the lavender pair":     { pieces: ["slipperLavender"] },
+  "Mend the last nine pairs":   { pieces: ["slipperCream"] },
+  "Color the shoe lasts":       { pieces: [[10], [21]] },
+  "Wake the shop cat, gently":  { pieces: ["cat"], cat: true },
+};
+const HIDE = [6, 9, 12, 13, 16, 20, 30, 32, 35, 38, 40];
+// The three enchanted leaves, "caught in a hem" and left about the shop: one on the ledger, one on the
+// windowsill by the cat, one tucked behind the cabinet so you have to turn the shop to find it.
+// at = [x, z]; each leaf drops straight down onto whatever is there.
+const LEAVES = {
+  leafSilver:  { at: [-0.11, 0.36], w: 0.034, h: 0.058, rot: 0.5, colors: ["#f2f4f7", "#9aa3ad"] },
+  leafGold:    { at: [0.0, -0.235], w: 0.034, h: 0.062, rot: -0.7, colors: ["#ffe08a", "#c98a22"] },
+  leafCrystal: { at: [0.36, -0.42], w: 0.036, h: 0.05, rot: 1.9, colors: ["#ffffff", "#b9c9ef"] },
+};
+// The pin cushion came without pins; these go in around its top.
+const CUSHION = { part: 19, center: [-0.3065, 0.1405], r: 0.042, colors: ["#d8454f", "#f2c14e", "#4f8fd8", "#ffffff", "#7cc47c"] }; // the workshop's own thimble; Fennimore brings his
+// Carved slices: part, and a test on each triangle's center (workshop coordinates).
+const CARVE = {
+  lanternA: { part: 2, test: (p) => Math.hypot(p.x - 0.37, p.z - 0.255) < 0.055 && p.y > 0.43 && p.y < 0.68 },
+  // the back lantern hangs against the cabinet's side wall (which faces 17° off +x); take only what stands out from that wall
+  lanternB: { part: 2, test: (p) => Math.hypot(p.x - 0.405, p.z - 0.10) < 0.055 && p.y > 0.43 && p.y < 0.68 && p.x * 0.956 - p.z * 0.292 > 0.341 },
+  roseSlipper: { part: 5, test: (p) => p.y >= 0.47 },
+  corkA: { part: 5, test: (p) => p.y < 0.47 },
+};
+// Where the separate characters sit, and how tall they are (workshop units; a spool is about 0.05).
+const PROPS = {
+  tuck:      { url: "models/tuck.txt", at: [-0.14, 0.585, 0.10], h: 0.105, rotY: 0.5 },
+  bramble:   { url: "models/bramble.txt", at: [0.175, 0.3, 0.37], h: 0.12, rotY: -0.4 },
+  fennimore: { url: "models/fennimore.txt", at: [0.242, 0.748, -0.005], h: 0.115, rotY: -0.6 },
+  cat:       { url: "models/cat.txt", at: [-0.14, 0.462, -0.255], h: 0.085, len: 0.2, rotY: 0.15 },
+  // the three slippers waiting to be mended, stacked where Tripo's blurry pile was
+  slipperCream:    { url: "models/slipper-cream.txt", at: [-0.30, 0.245, -0.11], h: 1, len: 0.19, rotY: 0.75 },
+  slipperLavender: { url: "models/slipper-lavender.txt", at: [-0.30, 0.298, -0.115], h: 1, len: 0.185, rotY: -0.55 },
+  slipperTeal:     { url: "models/slipper-teal.txt", at: [-0.295, 0.334, -0.115], h: 1, len: 0.15, rotY: 0.9 },
+  // the middle drawer, pulled out, full of buckles and tongues
+  drawer:          { url: "models/drawer-middle.txt", at: [0.165, 0.437, 0.088], fit: [0.201, 0.12, 0.265], rotY: 0.367 }, // fills the exact box of the drawer Tripo made (turned 21°, pulled out like the one above)
+};
+// Background music cues: which cue plays from which clip on.
+const CUES = [
+  { from: "MC001", url: "music/loop-1-the-shop-wakes.mp3" },
+  { from: "MC015", url: "music/loop-2-stitching.mp3" },
+  { from: "MC029", url: "music/loop-3-drifting-off.mp3" },
+];
+const ENDING = "music/ending-3-drifting-off-with-fade.mp3";
+
+/* ---------- renderer, scene, camera ---------- */
+const canvas = document.getElementById("c");
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+renderer.toneMapping = THREE.ACESFilmicToneMapping;
+renderer.toneMappingExposure = 1.0;
+const scene = new THREE.Scene();
+const pmrem = new THREE.PMREMGenerator(renderer);
+scene.environment = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+scene.environmentIntensity = 0.55;
+const keyLight = new THREE.DirectionalLight(0xffd6a0, 1.5); keyLight.position.set(-1.2, 2.2, 1.6); scene.add(keyLight);
+scene.add(new THREE.HemisphereLight(0xffe2bf, 0x2a160b, 0.55));
+const lanternLight = new THREE.PointLight(0xffa64a, 0, 1.2, 1.6); lanternLight.position.set(0.39, 0.53, 0.2); scene.add(lanternLight);
+
+// The blurred shop behind the diorama, cover-fitted to the screen.
+const backTex = new THREE.TextureLoader().load("backdrop.jpg", fitBackdrop);
+backTex.colorSpace = THREE.SRGBColorSpace;
+scene.background = backTex;
+function fitBackdrop() {
+  const img = backTex.image; if (!img) return;
+  const sa = innerWidth / innerHeight, ia = img.width / img.height;
+  backTex.matrixAutoUpdate = false;
+  if (sa > ia) backTex.matrix.setUvTransform(0, (1 - ia / sa) / 2, 1, ia / sa, 0, 0, 0);
+  else backTex.matrix.setUvTransform((1 - sa / ia) / 2, 0, sa / ia, 1, 0, 0, 0);
+}
+
+const camera = new THREE.PerspectiveCamera(36, 1, 0.01, 30);
+const controls = new OrbitControls(camera, canvas);
+controls.enableDamping = true; controls.dampingFactor = 0.08; controls.enablePan = false;
+controls.target.set(0.0, 0.42, 0.0);
+controls.minDistance = 0.55; controls.maxDistance = 4.6;
+controls.minPolarAngle = 0.45; controls.maxPolarAngle = 1.42;
+controls.rotateSpeed = 0.7; controls.zoomSpeed = 0.8;
+function homeCamera() {
+  const d = innerWidth < innerHeight ? 2.15 : 1.55;
+  camera.position.set(-0.32 * d, 0.42 + 0.5 * d, 0.92 * d); controls.update();
+}
+
+const composer = new EffectComposer(renderer);
+composer.addPass(new RenderPass(scene, camera));
+const outline = new OutlinePass(new THREE.Vector2(innerWidth, innerHeight), scene, camera);
+outline.visibleEdgeColor.set(0xffc35a); outline.hiddenEdgeColor.set(0x6b4413);
+outline.edgeStrength = 3.4; outline.edgeGlow = 0.6; outline.edgeThickness = 1.6; outline.pulsePeriod = 2.4;
+composer.addPass(outline);
+composer.addPass(new OutputPass());
+
+function resize() {
+  renderer.setSize(innerWidth, innerHeight, false); composer.setSize(innerWidth, innerHeight);
+  camera.aspect = innerWidth / innerHeight; camera.updateProjectionMatrix(); fitBackdrop();
+}
+addEventListener("resize", resize); resize(); homeCamera();
+
+/* ---------- loading ---------- */
+const loader = new GLTFLoader();
+async function loadGLB(url) {
+  const b64 = await (await fetch(url)).text();
+  const bin = Uint8Array.from(atob(b64.trim()), (ch) => ch.charCodeAt(0));
+  return new Promise((res, rej) => loader.parse(bin.buffer, "", res, rej));
+}
+const world = new THREE.Group(); scene.add(world);
+const partMesh = {};   // Tripo part number -> mesh
+const named = {};      // carved slices and characters -> mesh list
+
+// Splits off the triangles of a mesh whose centers pass a test, into a new mesh with its own material.
+function carve(mesh, test) {
+  const g = mesh.geometry, idx = g.index.array, pos = g.attributes.position;
+  const keep = [], take = [], a = v3(0,0,0), b = v3(0,0,0), c = v3(0,0,0);
+  for (let t = 0; t < idx.length; t += 3) {
+    a.fromBufferAttribute(pos, idx[t]); b.fromBufferAttribute(pos, idx[t + 1]); c.fromBufferAttribute(pos, idx[t + 2]);
+    const m = a.add(b).add(c).divideScalar(3).applyMatrix4(mesh.matrixWorld);
+    (test(m) ? take : keep).push(idx[t], idx[t + 1], idx[t + 2]);
+  }
+  g.setIndex(keep);
+  const g2 = g.clone(); g2.setIndex(take);
+  const m2 = new THREE.Mesh(g2, mesh.material.clone());
+  m2.matrix.copy(mesh.matrix); m2.matrixAutoUpdate = mesh.matrixAutoUpdate;
+  m2.position.copy(mesh.position); m2.quaternion.copy(mesh.quaternion); m2.scale.copy(mesh.scale);
+  mesh.parent.add(m2);
+  return m2;
+}
+
+function leafTexture([light, dark]) {
+  const cv = document.createElement("canvas"); cv.width = 128; cv.height = 192; const x = cv.getContext("2d");
+  const g = x.createLinearGradient(20, 10, 108, 182); g.addColorStop(0, light); g.addColorStop(1, dark);
+  x.fillStyle = g; x.beginPath(); x.moveTo(64, 6);
+  x.bezierCurveTo(120, 50, 118, 130, 64, 168); x.bezierCurveTo(10, 130, 8, 50, 64, 6); x.fill();
+  x.strokeStyle = "rgba(255,255,255,.55)"; x.lineWidth = 3; x.beginPath(); x.moveTo(64, 14); x.lineTo(64, 186); x.stroke();
+  x.lineWidth = 2; for (let k = 0; k < 5; k++) { const y = 40 + k * 24; x.beginPath(); x.moveTo(64, y + 12); x.lineTo(30 + k * 2, y); x.moveTo(64, y + 12); x.lineTo(98 - k * 2, y); x.stroke(); }
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+// Drops a ray straight down at (x, z) and returns the first visible surface it meets.
+const downRay = new THREE.Raycaster();
+function surfaceAt(x, z, only) {
+  downRay.set(v3(x, 2, z), v3(0, -1, 0));
+  const h = downRay.intersectObjects(only ? [only] : world.children, true).find((h) => h.object.visible && h.object.isMesh);
+  if (!h) return null;
+  return { p: h.point, n: h.face.normal.clone().transformDirection(h.object.matrixWorld) };
+}
+// A small flat leaf lying on whatever is below its spot.
+function leafAt(d) {
+  const s = surfaceAt(d.at[0], d.at[1]) || { p: v3(d.at[0], 0.26, d.at[1]), n: v3(0, 1, 0) };
+  const leaf = new THREE.Mesh(new THREE.PlaneGeometry(d.w, d.h, 4, 4), new THREE.MeshStandardMaterial({ map: leafTexture(d.colors), transparent: true, alphaTest: 0.5, roughness: 0.35, metalness: 0.4, side: THREE.DoubleSide }));
+  leaf.position.copy(s.p).addScaledVector(s.n, 0.003);
+  leaf.lookAt(s.p.clone().add(s.n)); leaf.rotateZ(d.rot); leaf.rotateX(0.35); // tipped up a little so it catches the light
+  world.add(leaf); return leaf;
+}
+// Tripo left a round pit in the cabinet top where its own thimble stood; a wooden lid gives Fennimore a floor.
+function capThimblePit() {
+  const lid = new THREE.Mesh(new THREE.CylinderGeometry(0.078, 0.078, 0.012, 40), new THREE.MeshStandardMaterial({ color: 0x9a6a42, roughness: 0.8 }));
+  lid.position.set(0.242, 0.742, -0.005); world.add(lid); return lid;
+}
+// Bramble's arms are posed around an armful of ribbon scraps; these are the scraps.
+function addRibbons(parent, h) {
+  const out = [], cols = ["#f4a7b9", "#a7d8d0", "#f6d38b", "#c9b3e6", "#f7c3a0"];
+  cols.forEach((c, k) => {
+    // each scrap is gathered in her arms at chest height, then spills down over them
+    const x0 = (k - 2) * h * 0.045, pts = [];
+    for (let i = 0; i <= 10; i++) { const t = i / 10;
+      pts.push(v3(x0 + Math.sin(t * 5 + k) * h * 0.04, h * (0.5 - t * 0.55), h * (0.16 + Math.sin(t * Math.PI) * 0.1))); }
+    const geo = new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 30, h * 0.035, 8, false);
+    geo.scale(1, 1, 0.4); // flat, like ribbon
+    const m = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({ color: c, roughness: 0.4 }));
+    parent.add(m); out.push(m);
+  });
+  return out;
+}
+// Pins stuck into the top of the pin cushion, each leaning out along the cushion's surface.
+function addPins(c) {
+  const out = [], shaftMat = new THREE.MeshStandardMaterial({ color: 0xd8d8de, metalness: 0.8, roughness: 0.3 });
+  const heads = c.colors.map((col) => new THREE.MeshStandardMaterial({ color: col, roughness: 0.35 }));
+  const shaftG = new THREE.CylinderGeometry(0.0012, 0.0012, 0.026, 6), headG = new THREE.SphereGeometry(0.0055, 12, 8);
+  const spots = [[0, 0]]; for (let k = 0; k < 6; k++) spots.push([0.55, k * 1.047 + 0.3]); for (let k = 0; k < 5; k++) spots.push([0.92, k * 1.257 + 0.9]);
+  spots.forEach(([rr, a], k) => {
+    const s = surfaceAt(c.center[0] + Math.cos(a) * rr * c.r, c.center[1] + Math.sin(a) * rr * c.r, partMesh[c.part]); if (!s) return;
+    const dir = s.n.clone().add(v3(Math.sin(k * 2.3) * 0.25, 0.3, Math.cos(k * 1.7) * 0.25)).normalize();
+    const q = new THREE.Quaternion().setFromUnitVectors(v3(0, 1, 0), dir);
+    const shaft = new THREE.Mesh(shaftG, shaftMat); shaft.position.copy(s.p).addScaledVector(dir, 0.008); shaft.quaternion.copy(q);
+    const head = new THREE.Mesh(headG, heads[k % heads.length]); head.position.copy(s.p).addScaledVector(dir, 0.021);
+    world.add(shaft, head); out.push(shaft, head);
+  });
+  return out;
+}
+function placeProp(id, gltf) {
+  const P = PROPS[id], o = gltf.scene;
+  const box = new THREE.Box3().setFromObject(o), size = box.getSize(v3(0,0,0));
+  const s = P.len ? Math.min(P.h / size.y, P.len / Math.max(size.x, size.z)) : P.h / size.y;
+  const holder = new THREE.Group(); const inner = new THREE.Group();
+  const k = P.fit ? [P.fit[0] / size.x, P.fit[1] / size.y, P.fit[2] / size.z] : [s, s * (P.sy || 1), s];
+  o.scale.set(...k);
+  const c = box.getCenter(v3(0,0,0));
+  o.position.set(-c.x * k[0], -box.min.y * k[1], -c.z * k[2]);
+  inner.add(o); holder.add(inner);
+  holder.position.set(...P.at); holder.rotation.y = P.rotY || 0;
+  world.add(holder);
+  const meshes = []; o.traverse((m) => { if (m.isMesh) meshes.push(m); });
+  named[id] = meshes;
+  return { holder, inner };
+}
+
+const anim = {};
+async function loadAll(onStep) {
+  const steps = 1 + Object.keys(PROPS).length; let done = 0;
+  const ws = await loadGLB("models/workshop.txt"); onStep(++done / steps);
+  world.add(ws.scene); ws.scene.updateMatrixWorld(true);
+  ws.scene.traverse((m) => {
+    if (!m.isMesh) return;
+    const k = +m.name.replace(/\D/g, ""); partMesh[k] = m;
+    m.material = m.material.clone();
+  });
+  for (const k of HIDE) if (partMesh[k]) partMesh[k].visible = false;
+  for (const [id, cv] of Object.entries(CARVE)) { const m = carve(partMesh[cv.part], cv.test); if (cv.drop) m.visible = false; else named[id] = [m]; }
+  await Promise.all(Object.keys(PROPS).map(async (id) => {
+    const g = await loadGLB(PROPS[id].url); anim[id] = placeProp(id, g); onStep(++done / steps);
+  }));
+  world.updateMatrixWorld(true);
+  for (const [id, d] of Object.entries(LEAVES)) named[id] = [leafAt(d)];
+  named.pins = addPins(CUSHION);
+  named.pitCap = [capThimblePit()];
+  named.bramble.push(...addRibbons(anim.bramble.inner, PROPS.bramble.h));
+}
+
+/* ---------- tap-to-paint ---------- */
+// Every tap drops a glowing ring that burns the clay away. Small pieces fill in from one tap;
+// big ones (the bench, the wall) fill as you paint them, and count once most of the surface is uncovered.
+const MAX_SPLATS = 20, DONE_AT = 0.72;
+const paintTime = { value: 0 };
+const CLAY = new THREE.Color(0xeee9f0); // near-white, like Loóna's unpainted clay
+const pieces = []; // {task, meshes, splats, R, full, samples, covered, progress, done, small, center}
+function makePaintable(mat, P) {
+  mat.onBeforeCompile = (sh) => {
+    Object.assign(sh.uniforms, { uSplats: { value: P.splats }, uR: P.R, uFull: P.full, uTime: paintTime, uClay: { value: CLAY } });
+    sh.vertexShader = "varying vec3 vMcW;\n" + sh.vertexShader.replace("#include <project_vertex>", `#include <project_vertex>
+      vMcW = (modelMatrix * vec4(transformed, 1.0)).xyz;`);
+    sh.fragmentShader = `uniform vec4 uSplats[${MAX_SPLATS}]; uniform float uR, uFull, uTime; uniform vec3 uClay; varying vec3 vMcW;\n` + sh.fragmentShader
+      .replace("#include <map_fragment>", `#include <map_fragment>
+      float mcReveal = uFull, mcRim = 0.0;
+      for (int k = 0; k < ${MAX_SPLATS}; k++) {
+        vec4 sp = uSplats[k]; float age = uTime - sp.w;
+        if (age < 0.0 || age > 1e5) continue;
+        float rad = uR * (1.0 - exp(-age * 3.2));
+        float d = distance(vMcW, sp.xyz);
+        mcReveal = max(mcReveal, 1.0 - smoothstep(rad - uR * 0.12, rad, d));
+        mcRim = max(mcRim, (1.0 - smoothstep(0.0, uR * 0.14, abs(d - rad))) * exp(-age * 1.6));
+      }
+      float mcL = dot(diffuseColor.rgb, vec3(0.2126, 0.7152, 0.0722));
+      diffuseColor.rgb = mix(uClay * (0.8 + mcL * 0.28), diffuseColor.rgb, mcReveal);`)
+      .replace("#include <emissivemap_fragment>", `#include <emissivemap_fragment>
+      totalEmissiveRadiance += mcRim * vec3(1.0, 0.58, 0.2) * 1.8;`);
+  };
+  mat.customProgramCacheKey = () => "mc" + P.id;
+}
+function meshesFor(spec) {
+  const list = Array.isArray(spec) ? spec : [spec];
+  return list.flatMap((s) => typeof s === "number" ? (partMesh[s] ? [partMesh[s]] : []) : (named[s] || []));
+}
+function buildPieces() {
+  world.updateMatrixWorld(true);
+  const claimed = new Set();
+  for (const [task, T] of Object.entries(TASKS)) {
+    T.list = T.pieces.map((spec) => {
+      const ms = meshesFor(spec);
+      const P = { id: pieces.length, task, meshes: ms, splats: Array.from({ length: MAX_SPLATS }, () => new THREE.Vector4(0, -99, 0, -1e6)),
+        R: { value: 0.05 }, full: { value: 0 }, samples: [], covered: null, progress: 0, done: false, fullT0: 0, count: 0 };
+      const box = new THREE.Box3(); ms.forEach((m) => box.expandByObject(m));
+      const diag = box.getSize(v3(0,0,0)).length();
+      P.center = box.getCenter(v3(0,0,0)); P.small = diag < 0.32;
+      P.R.value = P.small ? Math.max(diag * 0.75, 0.04) : THREE.MathUtils.clamp(diag * 0.16, 0.07, 0.16);
+      const total = ms.reduce((n, m) => n + m.geometry.index.count / 3, 0) || 1;
+      for (const m of ms) {
+        claimed.add(m);
+        const pos = m.geometry.attributes.position, idx = m.geometry.index.array;
+        const want = Math.max(3, Math.round(320 * (idx.length / 3) / total));
+        for (let k = 0; k < want; k++) {
+          const t = ((Math.random() * idx.length / 3) | 0) * 3;
+          P.samples.push(v3(0,0,0).fromBufferAttribute(pos, idx[t]).applyMatrix4(m.matrixWorld));
+        }
+        m.userData.piece = P.id;
+        makePaintable(m.material, P);
+      }
+      P.covered = new Uint8Array(P.samples.length);
+      pieces.push(P);
+      return P;
+    });
+  }
+  // Leftover crumbs (tiny bits Tripo split off) stay painted from the start.
+  world.traverse((m) => { if (m.isMesh && !claimed.has(m) && m.userData.piece === undefined) m.userData.piece = -1; });
+}
+const tappable = () => pieces.flatMap((P) => P.meshes);
+
+/* ---------- sound ---------- */
+let ac = null, master = null, voiceBus = null, musicBus = null, sfxBus = null, muted = false;
+const buffers = {};
+// iPhones mute web audio when the ring/silent switch is on. Asking for "playback" (and playing a silent
+// looping <audio> from the tap) puts the page in the same category as a music app, so it plays anyway.
+let keepAlive = null;
+function unlockPlayback() {
+  try { if (navigator.audioSession) navigator.audioSession.type = "playback"; } catch (e) {}
+  if (!keepAlive) {
+    const sr = 8000, n = sr, b = new ArrayBuffer(44 + n * 2), v = new DataView(b), w = (o, t) => [...t].forEach((c, i) => v.setUint8(o + i, c.charCodeAt(0)));
+    w(0, "RIFF"); v.setUint32(4, 36 + n * 2, true); w(8, "WAVEfmt "); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
+    v.setUint32(24, sr, true); v.setUint32(28, sr * 2, true); v.setUint16(32, 2, true); v.setUint16(34, 16, true); w(36, "data"); v.setUint32(40, n * 2, true);
+    keepAlive = new Audio(URL.createObjectURL(new Blob([b], { type: "audio/wav" }))); keepAlive.loop = true; keepAlive.setAttribute("playsinline", "");
+  }
+  keepAlive.play().catch(() => {});
+}
+// Any tap wakes the sound back up if the phone suspended it (a call, the screen locking).
+function wakeAudio() { if (ac && ac.state !== "running") ac.resume().catch(() => {}); }
+addEventListener("pointerdown", wakeAudio); document.addEventListener("visibilitychange", () => { if (!document.hidden) wakeAudio(); });
+function initAudio() {
+  unlockPlayback();
+  if (ac) return;
+  ac = new (window.AudioContext || window.webkitAudioContext)();
+  master = ac.createGain(); master.gain.value = 1; master.connect(ac.destination);
+  voiceBus = ac.createGain(); voiceBus.gain.value = 1; voiceBus.connect(master);
+  musicBus = ac.createGain(); musicBus.gain.value = MUSIC_LEVEL; musicBus.connect(master);
+  sfxBus = ac.createGain(); sfxBus.gain.value = 0.35; sfxBus.connect(master);
+}
+const MUSIC_LEVEL = 0.28, DUCK = 0.6; // under the voice, and a little lower while he speaks (phone speakers lose the quiet bits)
+async function buffer(url) {
+  if (!buffers[url]) buffers[url] = fetch(url).then((r) => r.arrayBuffer()).then((ab) => ac.decodeAudioData(ab));
+  return buffers[url];
+}
+function chime(freq, when = 0, vol = 0.2, dur = 1.4) {
+  if (!ac) return; const t = ac.currentTime + when;
+  const o = ac.createOscillator(), g = ac.createGain(), o2 = ac.createOscillator(), g2 = ac.createGain();
+  o.type = "sine"; o.frequency.value = freq; o2.type = "sine"; o2.frequency.value = freq * 2.01;
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(vol, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0008, t + dur);
+  g2.gain.setValueAtTime(0, t); g2.gain.linearRampToValueAtTime(vol * 0.3, t + 0.01); g2.gain.exponentialRampToValueAtTime(0.0005, t + dur * 0.5);
+  o.connect(g).connect(sfxBus); o2.connect(g2).connect(sfxBus); o.start(t); o2.start(t); o.stop(t + dur); o2.stop(t + dur);
+}
+const PENTA = [523.25, 587.33, 659.25, 783.99, 880, 1046.5, 1174.66, 1318.5, 1568];
+function tapSound(n) { chime(PENTA[(n * 2) % PENTA.length] * 1.0, 0, 0.09, 0.9); }
+function doneSound(k) { [0, 0.12, 0.26].forEach((d, j) => chime(PENTA[(k + j * 2) % PENTA.length], d, 0.12, 1.6)); }
+function taskSound() { [0, 0.18, 0.36, 0.6].forEach((d, j) => chime(PENTA[[2, 4, 5, 7][j]], d, 0.13, 2.2)); }
+function purr(dur = 2.6) {
+  if (!ac) return; const t = ac.currentTime;
+  const n = ac.createBufferSource(), b = ac.createBuffer(1, ac.sampleRate * dur, ac.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < d.length; i++) d[i] = (Math.random() * 2 - 1) * (0.5 + 0.5 * Math.sin(i / ac.sampleRate * Math.PI * 2 * 24));
+  n.buffer = b; const f = ac.createBiquadFilter(); f.type = "lowpass"; f.frequency.value = 180;
+  const g = ac.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(0.5, t + 0.6); g.gain.linearRampToValueAtTime(0, t + dur);
+  n.connect(f).connect(g).connect(sfxBus); n.start(t);
+}
+
+/* ---------- music ---------- */
+let cueNow = -1, cueSrc = null, cueGain = null;
+async function playCue(i, fade = 8) {
+  if (i === cueNow) return; cueNow = i;
+  const buf = await buffer(CUES[i].url);
+  const src = ac.createBufferSource(); src.buffer = buf; src.loop = true;
+  const g = ac.createGain(); g.gain.value = 0; src.connect(g).connect(musicBus);
+  const t = ac.currentTime; src.start(t);
+  g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + fade);
+  if (cueGain) { const og = cueGain, os = cueSrc; og.gain.setValueAtTime(og.gain.value, t); og.gain.linearRampToValueAtTime(0, t + fade); os.stop(t + fade + 0.1); }
+  cueSrc = src; cueGain = g;
+}
+async function playEnding() {
+  const buf = await buffer(ENDING), t = ac.currentTime;
+  const src = ac.createBufferSource(); src.buffer = buf; const g = ac.createGain(); g.gain.value = 0;
+  src.connect(g).connect(musicBus); src.start(t); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(1, t + 6);
+  if (cueGain) { cueGain.gain.setValueAtTime(cueGain.gain.value, t); cueGain.gain.linearRampToValueAtTime(0, t + 6); cueSrc.stop(t + 6.2); cueGain = null; }
+}
+function cueForClip(clip) { let c = 0; CUES.forEach((q, i) => { if (clip >= q.from) c = i; }); return c; }
+
+/* ---------- narration ---------- */
+const capEl = document.getElementById("caption");
+const cueEl = document.getElementById("cue"), cueFill = document.getElementById("cueFill"), cueText = document.getElementById("cueText");
+let clipIdx = -1, voiceSrc = null, runToken = 0, activeTask = null, nudgeT0 = 0;
+function showCaption(text) {
+  capEl.classList.add("fade");
+  setTimeout(() => { capEl.textContent = text; capEl.classList.remove("fade"); }, 380);
+}
+const wait = (s, tok) => new Promise((r) => setTimeout(() => r(tok === runToken), (FAST ? s / 20 : s) * 1000));
+// David found the script's long music breaks (12-25 s) too slow, so each break is a short breath now.
+function afterSeconds(after) {
+  const m = after.match(/([\d.]+)\s*-\s*([\d.]+)\s*s/); if (m) return (+m[1] + +m[2]) / 2 * 0.22;
+  const n = after.match(/([\d.]+)\s*s/); return n ? Math.min(+n[1], 1.2) : 1.2;
+}
+async function playClip(i, tok) {
+  const C = CLIPS[i]; const url = `audio/${C.clip}.mp3`;
+  let buf = null; try { buf = await buffer(url); } catch (e) { console.warn("Couldn't load", url, e); delete buffers[url]; }
+  if (tok !== runToken) return false;
+  buffer(`audio/${CLIPS[i + 1]?.clip}.mp3`).catch(() => {}); // fetch the next line early
+  const t = ac.currentTime + 0.05;
+  musicBus.gain.setTargetAtTime(muted ? 0 : MUSIC_LEVEL * DUCK, ac.currentTime, 0.4);
+  const rate = FAST ? 8 : 1;
+  if (buf) { const src = ac.createBufferSource(); src.buffer = buf; src.connect(voiceBus); voiceSrc = src; src.playbackRate.value = rate; src.start(t); }
+  C.caps.forEach((cap, k) => setTimeout(() => { if (tok === runToken) showCaption(cap); }, (C.at[k] / rate) * 1000));
+  // Move on when the line has had time to finish, even if the phone never reports that it ended.
+  await new Promise((r) => setTimeout(r, ((buf ? buf.duration : C.dur || 4) / rate + 0.15) * 1000));
+  musicBus.gain.setTargetAtTime(muted ? 0 : MUSIC_LEVEL, ac.currentTime, 1.2);
+  setTimeout(() => { if (tok === runToken) capEl.classList.add("fade"); }, FAST ? 100 : 1600);
+  return tok === runToken;
+}
+async function run(tok) {
+  for (clipIdx = 0; clipIdx < CLIPS.length; clipIdx++) {
+    const C = CLIPS[clipIdx];
+    const want = cueForClip(C.clip); if (want !== cueNow) playCue(want);
+    // Outline the task's pieces while its setup line plays, so "the teal pair" points at a slipper that is still white clay.
+    if (C.kind === "setup" && TASKS[C.task]) outline.selectedObjects = TASKS[C.task].list.filter((P) => !P.done).flatMap((P) => P.meshes);
+    if (!(await playClip(clipIdx, tok))) return;
+    if (C.after.startsWith("TASK PILL")) {
+      if (!(await doTask(C.task, tok))) return;
+      if (!(await wait(0.8, tok))) return;
+    } else if (C.after.startsWith("fade")) {
+      playEnding(); finishStory(); return;
+    } else if (!(await wait(afterSeconds(C.after), tok))) return;
+  }
+}
+
+/* ---------- tasks ---------- */
+let taskResolve = null;
+function doTask(name, tok) {
+  const T = TASKS[name];
+  if (!T) { console.warn("No pieces for", name); return Promise.resolve(true); }
+  activeTask = T; T.name = name;
+  cueText.textContent = name; cueFill.style.width = "0%"; cueEl.classList.remove("off", "full");
+  outline.selectedObjects = T.list.filter((P) => !P.done).flatMap((P) => P.meshes);
+  nudgeT0 = performance.now();
+  return new Promise((r) => { taskResolve = () => r(tok === runToken); });
+}
+function taskProgress(T) { return T.list.reduce((s, P) => s + (P.done ? 1 : Math.min(1, P.progress / DONE_AT)), 0) / T.list.length; }
+function updatePill() {
+  const T = activeTask; if (!T) return;
+  const p = taskProgress(T);
+  cueFill.style.width = Math.round(p * 100) + "%";
+  outline.selectedObjects = T.list.filter((P) => !P.done).flatMap((P) => P.meshes);
+}
+function completeTask() {
+  const T = activeTask; activeTask = null; outline.selectedObjects = [];
+  cueFill.style.width = "100%"; cueEl.classList.add("full"); taskSound();
+  setTimeout(() => cueEl.classList.add("off"), 900);
+  updateProgress();
+  if (T.cat) { purr(); anim.cat.wakeT0 = performance.now(); }
+  if (taskResolve) { const r = taskResolve; taskResolve = null; setTimeout(r, 600); }
+}
+function updateProgress() {
+  const done = Object.values(TASKS).filter((T) => T.list.every((P) => P.done)).length;
+  const pct = Math.round(done / Object.keys(TASKS).length * 100);
+  document.getElementById("plabel").textContent = `Progress ${pct}%`;
+  document.getElementById("pbar").style.width = pct + "%";
+}
+
+/* ---------- tapping ---------- */
+const ray = new THREE.Raycaster(), ndc = new THREE.Vector2();
+let downAt = null;
+canvas.addEventListener("pointerdown", (e) => { downAt = { x: e.clientX, y: e.clientY }; });
+canvas.addEventListener("pointerup", (e) => {
+  if (!downAt) return;
+  const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y); downAt = null;
+  if (moved > 8) return; // that was a drag to look around
+  tapAt(e.clientX, e.clientY);
+});
+function ringAt(x, y) {
+  const d = document.createElement("div"); d.className = "ring"; d.style.left = x + "px"; d.style.top = y + "px";
+  document.body.appendChild(d); setTimeout(() => d.remove(), 800);
+}
+function hitAt(cx, cy) {
+  ndc.set((cx / innerWidth) * 2 - 1, -(cy / innerHeight) * 2 + 1);
+  ray.setFromCamera(ndc, camera);
+  const hits = ray.intersectObjects(world.children, true).filter((h) => h.object.visible);
+  const h = hits[0]; if (!h) return null;
+  return { P: pieces[h.object.userData.piece] || null, point: h.point };
+}
+let tapCount = 0;
+function tapAt(cx, cy) {
+  ringAt(cx, cy);
+  const T = activeTask; if (!T) return;
+  const hit = hitAt(cx, cy);
+  if (!hit || !hit.P || hit.P.task !== T.name || hit.P.done) {
+    // Small things (a leaf, a spool) count if the tap lands close to them, so fingers don't have to be exact.
+    const near = T.list.filter((P) => P.small && !P.done).map((P) => {
+      const p = P.center.clone().project(camera);
+      return { P, d: Math.hypot((p.x + 1) / 2 * innerWidth - cx, (1 - p.y) / 2 * innerHeight - cy), behind: p.z > 1 };
+    }).filter((q) => !q.behind && q.d < 34).sort((a, b) => a.d - b.d)[0];
+    if (near) { paintAt(near.P, near.P.center); return; }
+    // A miss makes the gold outline flare, so the listener can find the right thing.
+    nudgeT0 = performance.now(); return;
+  }
+  paintAt(hit.P, hit.point);
+}
+function paintAt(P, point) {
+  const now = performance.now() / 1000;
+  P.splats[P.count % MAX_SPLATS].set(point.x, point.y, point.z, now); P.count++;
+  tapSound(tapCount++);
+  if (P.small) { finishPiece(P); return; }
+  const r2 = Math.pow(P.R.value * 1.05, 2); let c = 0;
+  P.samples.forEach((s, k) => { if (!P.covered[k] && s.distanceToSquared(point) < r2) P.covered[k] = 1; c += P.covered[k]; });
+  P.progress = c / P.samples.length;
+  if (P.progress >= DONE_AT || P.count >= MAX_SPLATS) finishPiece(P);
+  else updatePill();
+}
+function finishPiece(P) {
+  P.done = true; P.fullT0 = performance.now();
+  const T = TASKS[P.task];
+  if (T.greet) greet(P);
+  const left = T.list.filter((q) => !q.done).length;
+  if (left) doneSound(T.list.length - left);
+  updatePill();
+  if (!left) completeTask();
+}
+function greet(P) {
+  const a = anim[["tuck", "bramble", "fennimore"].find((id) => named[id].includes(P.meshes[0]))];
+  if (a) a.greetT0 = performance.now();
+}
+
+/* ---------- every frame ---------- */
+const moon = (() => {
+  // A small night sky with a crescent moon behind the round window.
+  const cv = document.createElement("canvas"); cv.width = cv.height = 256; const x = cv.getContext("2d");
+  const g = x.createRadialGradient(150, 100, 10, 128, 128, 180); g.addColorStop(0, "#2a3a6e"); g.addColorStop(1, "#0b1030");
+  x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+  for (let i = 0; i < 40; i++) { x.fillStyle = `rgba(255,255,230,${0.3 + Math.random() * 0.6})`; x.fillRect(Math.random() * 256, Math.random() * 256, 1.6, 1.6); }
+  x.fillStyle = "#fff3c4"; x.beginPath(); x.arc(170, 90, 34, 0, Math.PI * 2); x.fill();
+  x.globalCompositeOperation = "destination-out"; x.beginPath(); x.arc(186, 80, 30, 0, Math.PI * 2); x.fill();
+  x.globalCompositeOperation = "destination-over"; x.fillStyle = g; x.fillRect(0, 0, 256, 256);
+  const t = new THREE.CanvasTexture(cv); t.colorSpace = THREE.SRGBColorSpace;
+  const m = new THREE.Mesh(new THREE.CircleGeometry(0.15, 40), new THREE.MeshBasicMaterial({ map: t, color: 0x444444 }));
+  m.position.set(-0.105, 0.585, -0.37); world.add(m); named.moonSky = [m]; return m;
+})();
+function frame(now) {
+  controls.update();
+  paintTime.value = now / 1000;
+  for (const P of pieces) if (P.done) P.full.value = Math.min(1, (now - P.fullT0) / 800);
+  // a wrong tap makes the outline flare
+  outline.edgeStrength = 3.4 + Math.max(0, 1 - (now - nudgeT0) / 800) * 6;
+  // lantern: warm light grows once lit, with a gentle flicker
+  const lit = TASKS["Light the shop lantern"].list;
+  const lk = lit.filter((P) => P.done).length / lit.length;
+  const fl = 1 + Math.sin(now / 90) * 0.06 + Math.sin(now / 233) * 0.05;
+  lanternLight.intensity += ((lk * 0.9 * fl) - lanternLight.intensity) * 0.05;
+  lit.forEach((P) => P.meshes.forEach((m) => { if (m.material.emissive) m.material.emissive.setRGB(1, 0.55, 0.18).multiplyScalar(P.done ? 0.22 * fl * Math.min(1, P.full.value) : 0); }));
+  const win = TASKS["Color the moon window"].list[0];
+  moon.material.color.setScalar(0.27 + 0.73 * (win.done ? win.full.value : 0));
+  // the characters' small idle motions
+  if (!reduceMotion) {
+    const t = now / 1000;
+    if (anim.fennimore) anim.fennimore.inner.rotation.x = Math.sin(t * 0.5) * 0.06 + 0.03;
+    if (anim.cat) anim.cat.inner.scale.y = 1 + Math.sin(t * 1.4) * 0.025;
+    if (anim.bramble) anim.bramble.inner.rotation.z = Math.sin(t * 0.7) * 0.03;
+    if (anim.tuck) anim.tuck.inner.rotation.x = Math.sin(t * 1.1) * 0.03;
+  }
+  for (const id of ["tuck", "bramble", "fennimore"]) {
+    const a = anim[id]; if (!a || !a.greetT0) continue;
+    const k = (now - a.greetT0) / 900; if (k > 1) { a.greetT0 = 0; a.inner.position.y = 0; continue; }
+    const s = Math.sin(k * Math.PI);
+    if (id === "tuck") a.inner.position.y = s * 0.02;                 // a little hop and wave
+    if (id === "bramble") a.inner.position.y = -s * 0.008, a.inner.rotation.x = s * 0.18; // a curtsy
+    if (id === "fennimore") a.inner.rotation.x = s * 0.35;             // a slow, deep nod
+  }
+  if (anim.cat?.wakeT0) {
+    const k = (now - anim.cat.wakeT0) / 2600;
+    if (k < 1) { const s = Math.sin(k * Math.PI); anim.cat.inner.scale.y = 1 + s * 0.08; anim.cat.inner.rotation.z = s * 0.04; }
+  }
+  composer.render();
+  requestAnimationFrame(frame);
+}
+
+/* ---------- start, finish, buttons ---------- */
+const beginBtn = document.getElementById("begin");
+loadAll((p) => { beginBtn.textContent = `Loading the workshop… ${Math.round(p * 100)}%`; }).then(() => {
+  buildPieces();
+  if (DEBUG === "regions") debugRegions();
+  if (DEBUG && DEBUG.startsWith("part")) debugParts(DEBUG.slice(4).split("-").map(Number));
+  beginBtn.disabled = false; beginBtn.textContent = "Begin";
+  requestAnimationFrame(frame);
+}).catch((e) => { console.error(e); beginBtn.textContent = "The workshop didn't load. Reload the page to try again."; });
+
+function begin() {
+  initAudio(); if (ac.state === "suspended") ac.resume();
+  document.getElementById("intro").hidden = true; document.getElementById("end").hidden = true;
+  const tok = ++runToken;
+  pieces.forEach((P) => { P.done = false; P.progress = 0; P.count = 0; P.covered.fill(0); P.full.value = 0; P.splats.forEach((s) => s.set(0, -99, 0, -1e6)); });
+  updateProgress(); cueNow = -1;
+  run(tok);
+}
+function finishStory() {
+  cueEl.classList.add("off");
+  setTimeout(() => { document.getElementById("end").hidden = false; }, FAST ? 200 : 20000);
+}
+beginBtn.addEventListener("click", begin);
+document.getElementById("again").addEventListener("click", begin);
+document.getElementById("mute").addEventListener("click", (e) => {
+  muted = !muted;
+  if (master) master.gain.setTargetAtTime(muted ? 0 : 1, ac.currentTime, 0.3);
+  document.getElementById("snd-on").hidden = muted; document.getElementById("snd-off").hidden = !muted;
+  e.currentTarget.setAttribute("aria-label", muted ? "Turn sound on" : "Mute sound");
+});
+
+function debugRegions() {
+  // Paints every task's pieces in its own flat color, to check what belongs to what.
+  const hues = Object.keys(TASKS);
+  pieces.forEach((P) => { const h = hues.indexOf(P.task) / hues.length; P.meshes.forEach((m) => { m.material = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(h, 0.85, 0.55) }); }); });
+  world.traverse((m) => { if (m.isMesh && m.userData.piece === -1) m.material = new THREE.MeshStandardMaterial({ color: 0x333333 }); });
+  scene.background = new THREE.Color(0x111111);
+}
+
+function debugParts(list) {
+  world.traverse((m) => { if (m.isMesh) m.material = new THREE.MeshStandardMaterial({ color: 0x555555, transparent: true, opacity: 0.4 }); });
+  list.forEach((k, j) => { if (partMesh[k]) partMesh[k].material = new THREE.MeshStandardMaterial({ color: new THREE.Color().setHSL(j / list.length, 0.9, 0.55), emissive: new THREE.Color().setHSL(j / list.length, 0.9, 0.2) }); });
+  scene.background = new THREE.Color(0x111111);
+}
+// Test hooks for automated walk-throughs.
+if (DEBUG) Object.assign(window, { __parts: partMesh, __THREE: THREE, __named: named }); // for the test scripts
+window.__mc = {
+  get clip() { return CLIPS[clipIdx]?.clip; }, get task() { return activeTask?.name || null; },
+  get pill() { return activeTask ? taskProgress(activeTask) : null; },
+  pieces: () => pieces.map((P) => ({ id: P.id, task: P.task, done: P.done, small: P.small })),
+  pointFor(id) {
+    const P = pieces[id];
+    const order = P.samples.map((s, k) => k).filter((k) => !P.covered[k]).sort(() => Math.random() - 0.5);
+    for (const k of order.slice(0, 300)) {
+      const s = P.samples[k].clone().project(camera);
+      const x = (s.x + 1) / 2 * innerWidth, y = (1 - s.y) / 2 * innerHeight;
+      if (s.z > 1 || x < 2 || y < 2 || x > innerWidth - 2 || y > innerHeight - 2) continue;
+      const h = hitAt(x, y); if (h && h.P === P) return { x, y };
+    }
+    return null;
+  },
+  look(t, p) { controls.target.set(...t); camera.position.set(...p); controls.update(); },
+  turn(az, polar) { const off = camera.position.clone().sub(controls.target), sph = new THREE.Spherical().setFromVector3(off); sph.theta += az; if (polar) sph.phi = polar; camera.position.copy(controls.target).add(v3(0,0,0).setFromSpherical(sph)); controls.update(); },
+  home: homeCamera,
+};
+</script>
+
+
+</body></html>
